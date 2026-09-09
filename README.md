@@ -9,8 +9,9 @@ Once you have a list ready for the current job you're on, Lockstyle will pick a 
 Lockstyle won't reapply your lockstyle if you manually change to another one through the in-game commands.
 Lockstyle picks a random style each time you swap your main job to a job that has a list defined in the config file.
 Alternatively you can use the manual command to force a reroll.
-By default the delay is set to 8 seconds but this number can be changed in the config file.
+By default the delay is set to 10 seconds but this number can be changed in the config file.
 The delay is ignored when you use the reroll manual command.
+The apply_on_login setting if set on true (default) also applies the lockstyle when you login or relog coming from a mule. If set to false it only applies it when you change job, subjob, manual command etc.
   
   
 **Commands:**  
