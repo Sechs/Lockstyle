@@ -29,18 +29,20 @@ require('logger')
 
 _addon.name       = 'Lockstyle'
 _addon.author     = 'Sechs'
-_addon.version    = '1.1'
+_addon.version    = '1.2'
 _addon.commands   = {'lockstyle', 'ls'}
 
 local job_list = {'WAR','MNK','WHM','BLM','RDM','THF','PLD','DRK','BST','BRD','RNG','SAM','NIN','DRG','SMN','BLU','COR','PUP','DNC','SCH','GEO','RUN'}
 
 local defaults = {}
-defaults.delay = 8
+defaults.delay = 10
 for _, job in ipairs(job_list) do
     defaults[job] = ''
 end
+defaults.apply_on_login = true
 
 local settings = config.load(defaults)
+local packets = require('packets')
 
 local function init_random()
     math.randomseed(os.time())
@@ -69,16 +71,24 @@ local function pick_style(job)
     local count = #list
     if count == 0 then
         return nil
-    elseif count == 1 then
-        return list[1]
     else
         return list[math.random(count)]
     end
 end
 
 local pending_id = 0
+local last_style = {}
+local last_main_id = nil
 
-local function schedule_apply(job, forced_delay)
+local function track_main_job()
+    local player = windower.ffxi.get_player()
+    if player then
+        last_main_id = player.main_job_id
+    end
+end
+
+local function schedule_apply(job, mode, forced_delay)
+    mode = mode or 'new'
     pending_id = pending_id + 1
     local my_id = pending_id
 
@@ -103,66 +113,73 @@ local function schedule_apply(job, forced_delay)
             return
         end
 
-        local style = pick_style(player.main_job)
+        local style
+        if mode == 'same' and last_style[job] ~= nil then
+            style = last_style[job]
+        else
+            style = pick_style(job)
+            if style then
+                last_style[job] = style
+            end
+        end
+
         if style then
             windower.send_command('input /lockstyleset ' .. style)
         end
     end, delay)
 end
 
-local last_main_id = nil
-local last_sub_id   = nil
-
-local function track_current_job()
+windower.register_event('job change', function(main_job_id)
     local player = windower.ffxi.get_player()
-    if player then
-        last_main_id = player.main_job_id
-        last_sub_id  = player.sub_job_id
+    if not player then
+        return
     end
-end
-
-config.register(settings, function(s)
-    settings = s
-    config.save(settings)
-    track_current_job()
-    local player = windower.ffxi.get_player()
-    if player then
-        schedule_apply(player.main_job)
+    if main_job_id ~= last_main_id then
+        last_main_id = main_job_id
+        schedule_apply(player.main_job, 'new')
     end
 end)
 
 windower.register_event('load', function()
     init_random()
+    track_main_job()
+    local player = windower.ffxi.get_player()
+    if player then
+        schedule_apply(player.main_job, 'new')
+    end
 end)
 
-windower.register_event('job change', function(main_job_id, main_job_level, sub_job_id, sub_job_level)
-    local player = windower.ffxi.get_player()
-    if not player then
+windower.register_event('login', function()
+    track_main_job()
+    if not settings.apply_on_login then
         return
     end
-
-    if main_job_id ~= last_main_id then
-        last_main_id = main_job_id
-        last_sub_id  = sub_job_id
-        schedule_apply(player.main_job)
-
-    elseif sub_job_id ~= last_sub_id then
-        last_sub_id = sub_job_id
-        schedule_apply(player.main_job)
+    local player = windower.ffxi.get_player()
+    if player then
+        schedule_apply(player.main_job, 'new')
     end
 end)
 
-windower.register_event('incoming text', function(original, modified, original_mode, modified_mode, blocked)
-    if original and original:lower():find('style lock disabled', 1, true) then
-        local player = windower.ffxi.get_player()
-        if player then
-            schedule_apply(player.main_job)
-        end
+-- windower.register_event('incoming text', function(original, modified, original_mode, modified_mode, blocked)
+    -- if original and original:lower():find('style lock mode disabled', 1, true) then
+        -- local player = windower.ffxi.get_player()
+        -- if player then
+            -- schedule_apply(player.main_job, 'same')
+        -- end
+    -- end
+-- end)
+
+windower.register_event('outgoing chunk', function(id, original, modified)
+    if id ~= 0x053 then return end
+	local player = windower.ffxi.get_player()
+    local packet = packets.parse('outgoing', original)
+    if packet.Type == 0 and player then
+        schedule_apply(player.main_job, 'new')
     end
 end)
 
 
--- Manual commands section
+-- Manual commands
 windower.register_event('addon command', function(...)
     local args = {...}
     local cmd = args[1] and args[1]:lower() or ''
@@ -172,8 +189,8 @@ windower.register_event('addon command', function(...)
         if not player then
             return
         end
-        schedule_apply(player.main_job, 0)
-        windower.add_to_chat(207, 'Lockstyle: new random for ' .. player.main_job .. '.')
+        schedule_apply(player.main_job, 'new', 0)
+		log('new random for ' .. player.main_job .. '.')
 
     elseif cmd == 'status' then
         local player = windower.ffxi.get_player()
@@ -183,17 +200,16 @@ windower.register_event('addon command', function(...)
         local job = player.main_job
         local list_str = settings[job] or ''
         if list_str == '' then
-            windower.add_to_chat(207, 'Lockstyle [' .. job .. ']: no set defined.')
+			log('[' .. job .. ']: no set defined.')
         else
-            windower.add_to_chat(207, 'Lockstyle [' .. job .. ']: ' .. list_str
-                .. ' (delay: ' .. tostring(settings.delay) .. 's)')
+        	log('[' .. job .. ']: ' .. list_str .. ' (delay: ' .. tostring(settings.delay) .. 's, apply_on_login: ' .. tostring(settings.apply_on_login) .. ')')
         end
 
     elseif cmd == 'reload' then
         config.reload(settings)
-        windower.add_to_chat(207, 'Lockstyle: config reloaded from the file.')
+		log('config reloaded from the file.')
 
     else
-        windower.add_to_chat(207, 'Lockstyle commands: //lockstyle random | status | reload | help')
+		log('commands: //lockstyle random | status | reload | help')
     end
 end)
