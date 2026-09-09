@@ -14,10 +14,10 @@ The delay is ignored when you use the reroll manual command.
   
   
 **Commands:**  
-//ls reload
-//ls random
-//ls reroll
-//ls status
+* //ls reload
+* //ls random
+* //ls reroll
+* //ls status
 
 
 **Commands details:**  
