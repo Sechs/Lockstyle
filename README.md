@@ -26,3 +26,6 @@ The delay is ignored when you use the reroll manual command.
 * random - rerolls the current lockstyle
 * reroll - same as above
 * status - displays a list of the currently defined sets
+
+**Special Note on Delay:**
+If you put a delay under 10 seconds (which is the default value) it will probably work most of the time, but there is at least one specific situation where you will incur into an error. If you remove the lockstyle (with the in-game command /lockstyle off) that counts as a lockstyle command, the same as the one that apply it. As such, it DOES incur into the serverwide 10 seconds cooldown. Which means the addon would try to reapply the just lost lockstyle again with a delay of under 10 seconds, resulting in an in-game error because the cooldown is not over yet. So I warmly suggest to not put the delay under 10.
