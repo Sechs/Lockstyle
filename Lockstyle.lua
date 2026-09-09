@@ -160,15 +160,6 @@ windower.register_event('login', function()
     end
 end)
 
--- windower.register_event('incoming text', function(original, modified, original_mode, modified_mode, blocked)
-    -- if original and original:lower():find('style lock mode disabled', 1, true) then
-        -- local player = windower.ffxi.get_player()
-        -- if player then
-            -- schedule_apply(player.main_job, 'same')
-        -- end
-    -- end
--- end)
-
 windower.register_event('outgoing chunk', function(id, original, modified)
     if id ~= 0x053 then return end
 	local player = windower.ffxi.get_player()
