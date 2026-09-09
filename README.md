@@ -1,5 +1,5 @@
 **Authors:** Sechs  
-**Version:** 1.1  
+**Version:** 1.2
 **Date:** 09/09/2026
   
   
