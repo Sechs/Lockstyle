@@ -14,7 +14,15 @@ The delay is ignored when you use the reroll manual command.
   
   
 **Commands:**  
-//lockstyle or //ls
-reload - reloads the xml file
-random | reroll - rerolls the current lockstyle
-status - displays a list of the currently defined sets
+//ls reload
+//ls random
+//ls reroll
+//ls status
+
+
+**Commands details:**  
+* full command is //lockstyle but //ls is also accepted
+* reload - Reloads the xml file
+* random - rerolls the current lockstyle
+* reroll - same as above
+* status - displays a list of the currently defined sets
